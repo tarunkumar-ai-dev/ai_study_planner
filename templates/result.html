@@ -10,9 +10,8 @@
 <div class="container">
 
     <h1>🔥 Your Study Plan</h1>
-    <p>💪 Keep going!</p>
 
-    <!-- ✅ Reason Input -->
+    <!-- Reason Input -->
     <div style="margin:20px;">
         <input type="text" id="reason" placeholder="Reason (if skipping)">
     </div>
@@ -33,27 +32,27 @@
 
             <td>{{ row.subject }}</td>
 
-            <!-- 🌅 MORNING -->
+            <!-- MORNING -->
             <td>
                 {{ row.morning }}
                 <br>
-                <button onclick="startTimer({{ loop.index0 }}, 'morning')">▶</button>
+                <button onclick="startTimer({{ loop.index0 }}, 'morning', '{{ row.subject }}')">▶</button>
                 <span id="m-{{ loop.index0 }}">❌</span>
             </td>
 
-            <!-- ☀️ AFTERNOON -->
+            <!-- AFTERNOON -->
             <td>
                 {{ row.afternoon }}
                 <br>
-                <button onclick="checkAndStart({{ loop.index0 }}, 'afternoon')">▶</button>
+                <button onclick="checkAndStart({{ loop.index0 }}, 'afternoon', '{{ row.subject }}')">▶</button>
                 <span id="a-{{ loop.index0 }}">❌</span>
             </td>
 
-            <!-- 🌙 NIGHT -->
+            <!-- NIGHT -->
             <td>
                 {{ row.night }}
                 <br>
-                <button onclick="checkNight({{ loop.index0 }})">▶</button>
+                <button onclick="checkNight({{ loop.index0 }}, '{{ row.subject }}')">▶</button>
                 <span id="n-{{ loop.index0 }}">❌</span>
             </td>
 
@@ -62,17 +61,24 @@
         </tbody>
     </table>
 
-    <!-- ⏱ Timer Display -->
+    <!-- Timer -->
     <h2 id="timer">Timer: 00:00</h2>
 
 </div>
 
-<!-- 🔥 JAVASCRIPT -->
+<!-- 🔔 Notification Permission -->
+<script>
+if (Notification.permission !== "granted") {
+    Notification.requestPermission();
+}
+</script>
+
+<!-- 🔥 MAIN JS -->
 <script>
 
 let timers = {};
 
-function startTimer(index, type) {
+function startTimer(index, type, subjectName) {
 
     let cellId;
     let timeText;
@@ -102,11 +108,19 @@ function startTimer(index, type) {
         if (seconds <= 0) {
             clearInterval(timers[cellId]);
 
+            // ✅ Tick
             document.getElementById(cellId).innerText = "✔️";
 
             // 🔊 Beep
             let audio = new Audio("https://www.soundjay.com/buttons/beep-01a.mp3");
             audio.play();
+
+            // 🔔 Notification
+            if (Notification.permission === "granted") {
+                new Notification("⏱ Time Completed!", {
+                    body: subjectName + " (" + type + ") done ✅",
+                });
+            }
 
         } else {
             seconds--;
@@ -118,7 +132,7 @@ function startTimer(index, type) {
     }, 1000);
 }
 
-function checkAndStart(index, type) {
+function checkAndStart(index, type, subjectName) {
 
     let morningStatus = document.getElementById("m-" + index).innerText;
     let reason = document.getElementById("reason").value;
@@ -133,10 +147,10 @@ function checkAndStart(index, type) {
         }
     }
 
-    startTimer(index, type);
+    startTimer(index, type, subjectName);
 }
 
-function checkNight(index) {
+function checkNight(index, subjectName) {
 
     let afternoonStatus = document.getElementById("a-" + index).innerText;
     let reason = document.getElementById("reason").value;
@@ -151,7 +165,7 @@ function checkNight(index) {
         }
     }
 
-    startTimer(index, 'night');
+    startTimer(index, 'night', subjectName);
 }
 
 function formatTime(sec) {
