@@ -2,67 +2,138 @@
 <html>
 <head>
     <title>Study Plan</title>
+
+    <!-- CSS LINK -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        .message {
+            font-size: 22px;
+            margin-top: 15px;
+            color: yellow;
+        }
+
+        .timer-box {
+            margin-top: 20px;
+            font-size: 25px;
+        }
+
+        .btn {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .start { background: green; color: white; }
+        .pause { background: orange; color: white; }
+        .print { background: blue; color: white; }
+    </style>
 </head>
+
 <body>
 
-    <h1>Your Study Plan 📚</h1>
-    <h3 style="text-align:center; color:green;">
-      {{ message }}
-    </h3>
+<div class="container">
 
-    <div class="result-box">  
+    <h1>Your Study Plan 📚</h1>
+
+    <!-- Dynamic Message -->
+    <div class="message" id="msg">🔥 Study hard, success is coming!</div>
+
+    <!-- Table -->
     <table>
-        
         <tr>
             <th>Subject</th>
             <th>Morning 🌅</th>
-            <th>Afternoon 🌇</th>
+            <th>Afternoon ☀️</th>
             <th>Night 🌙</th>
+            <th>Status ✅</th>
         </tr>
 
-        {% for item in plan %}
+        {% for row in plan %}
         <tr>
-            <td>{{ item.subject }}</td>
-            <td>{{ item.morning }}</td>
-            <td>{{ item.afternoon }}</td>
-            <td>{{ item.night }}</td>
+            <td>{{ row.subject }}</td>
+            <td>{{ row.morning }}</td>
+            <td>{{ row.afternoon }}</td>
+            <td>{{ row.night }}</td>
+            <td class="status">❌</td>
         </tr>
         {% endfor %}
     </table>
-    <canvas id="myChart"></canvas>
-</div>
+
+    <!-- Timer -->
+    <div class="timer-box">
+        ⏱ Timer: <span id="timer">00:00</span>
     </div>
 
-    <br>
-    <a href="/">⬅ Back</a>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Buttons -->
+    <button class="btn start" onclick="startTimer()">Start</button>
+    <button class="btn pause" onclick="pauseTimer()">Pause</button>
+    <button class="btn print" onclick="window.print()">Print 🖨️</button>
+
+</div>
+
+<!-- SOUND -->
+<audio id="beep" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+
 <script>
-    const subjects = [
-        {% for item in plan %}
-            "{{ item.subject }}",
-        {% endfor %}
-    ];
+let time = 0;
+let running = false;
+let interval;
 
-    const hours = [
-        {% for item in plan %}
-            {{ item.morning + item.afternoon + item.night }},
-        {% endfor %}
-    ];
+function startTimer() {
+    if (!running) {
+        running = true;
+        interval = setInterval(() => {
+            time++;
+            let min = Math.floor(time / 60);
+            let sec = time % 60;
 
-    const ctx = document.getElementById('myChart');
+            document.getElementById("timer").innerText =
+                (min < 10 ? "0" + min : min) + ":" +
+                (sec < 10 ? "0" + sec : sec);
 
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: subjects,
-            datasets: [{
-                label: 'Study Hours',
-                data: hours,
-                borderWidth: 1
-            }]
-        }
-    });
+            // every 10 sec beep + tick
+            if (time % 10 === 0) {
+                document.getElementById("beep").play();
+
+                let rows = document.querySelectorAll(".status");
+                for (let i = 0; i < rows.length; i++) {
+                    if (rows[i].innerText === "❌") {
+                        rows[i].innerText = "✅";
+                        break;
+                    }
+                }
+            }
+
+        }, 1000);
+    }
+}
+
+function pauseTimer() {
+    running = false;
+    clearInterval(interval);
+}
+
+
+// 🔥 changing message
+let messages = [
+    "🔥 Exam very close! Study more!",
+    "💪 Keep going!",
+    "📚 Focus = Success",
+    "🚀 You can do it!",
+    "⏳ Time is running!"
+];
+
+let i = 0;
+setInterval(() => {
+    document.getElementById("msg").innerText = messages[i];
+    i = (i + 1) % messages.length;
+}, 3000);
+
 </script>
+
 </body>
 </html>
