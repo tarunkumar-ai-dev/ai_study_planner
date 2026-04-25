@@ -11,12 +11,18 @@
 
     <h1>🔥 Your Study Plan</h1>
 
-    <!-- Reason Input -->
-    <div style="margin:20px;">
-        <input type="text" id="reason" placeholder="Reason (if skipping)">
+    <!-- 🔥 Motivational Text -->
+    <div id="motivation">
+        🔥 Stay focused!
     </div>
 
-    <table border="1" cellpadding="10">
+    <!-- Live Status -->
+    <div id="liveStatus">🔴 No active session</div>
+
+    <!-- Reason Input -->
+    <input type="text" id="reason" placeholder="Reason (if skipping)">
+
+    <table>
         <thead>
             <tr>
                 <th>Subject</th>
@@ -32,26 +38,20 @@
 
             <td>{{ row.subject }}</td>
 
-            <!-- MORNING -->
             <td>
                 {{ row.morning }}
-                <br>
                 <button onclick="startTimer({{ loop.index0 }}, 'morning', '{{ row.subject }}')">▶</button>
                 <span id="m-{{ loop.index0 }}">❌</span>
             </td>
 
-            <!-- AFTERNOON -->
             <td>
                 {{ row.afternoon }}
-                <br>
                 <button onclick="checkAndStart({{ loop.index0 }}, 'afternoon', '{{ row.subject }}')">▶</button>
                 <span id="a-{{ loop.index0 }}">❌</span>
             </td>
 
-            <!-- NIGHT -->
             <td>
                 {{ row.night }}
-                <br>
                 <button onclick="checkNight({{ loop.index0 }}, '{{ row.subject }}')">▶</button>
                 <span id="n-{{ loop.index0 }}">❌</span>
             </td>
@@ -61,7 +61,6 @@
         </tbody>
     </table>
 
-    <!-- Timer -->
     <h2 id="timer">Timer: 00:00</h2>
 
 </div>
@@ -80,18 +79,18 @@ let timers = {};
 
 function startTimer(index, type, subjectName) {
 
-    let cellId;
-    let timeText;
+    document.getElementById("liveStatus").innerText =
+        "🟢 Studying: " + subjectName + " (" + type + ")";
+
+    let cellId, timeText;
 
     if (type === "morning") {
         cellId = "m-" + index;
         timeText = document.querySelectorAll("tbody tr")[index].cells[1].innerText;
-    }
-    else if (type === "afternoon") {
+    } else if (type === "afternoon") {
         cellId = "a-" + index;
         timeText = document.querySelectorAll("tbody tr")[index].cells[2].innerText;
-    }
-    else {
+    } else {
         cellId = "n-" + index;
         timeText = document.querySelectorAll("tbody tr")[index].cells[3].innerText;
     }
@@ -99,26 +98,21 @@ function startTimer(index, type, subjectName) {
     let minutes = parseInt(timeText);
     let seconds = minutes * 60;
 
-    if (timers[cellId]) {
-        clearInterval(timers[cellId]);
-    }
-
     timers[cellId] = setInterval(() => {
 
         if (seconds <= 0) {
             clearInterval(timers[cellId]);
 
-            // ✅ Tick
             document.getElementById(cellId).innerText = "✔️";
 
-            // 🔊 Beep
-            let audio = new Audio("https://www.soundjay.com/buttons/beep-01a.mp3");
-            audio.play();
+            document.getElementById("liveStatus").innerText =
+                "✅ Completed: " + subjectName + " (" + type + ")";
 
-            // 🔔 Notification
+            new Audio("https://www.soundjay.com/buttons/beep-01a.mp3").play();
+
             if (Notification.permission === "granted") {
-                new Notification("⏱ Time Completed!", {
-                    body: subjectName + " (" + type + ") done ✅",
+                new Notification("⏱ Completed!", {
+                    body: subjectName + " (" + type + ") done"
                 });
             }
 
@@ -126,7 +120,13 @@ function startTimer(index, type, subjectName) {
             seconds--;
 
             document.getElementById("timer").innerText =
-                "Timer: " + formatTime(seconds);
+                "Timer: " + Math.floor(seconds/60) + ":" + (seconds%60);
+
+            if (seconds % 30 === 0) {
+                new Notification("⏱ Running...", {
+                    body: subjectName + " (" + type + ") ongoing"
+                });
+            }
         }
 
     }, 1000);
@@ -134,17 +134,12 @@ function startTimer(index, type, subjectName) {
 
 function checkAndStart(index, type, subjectName) {
 
-    let morningStatus = document.getElementById("m-" + index).innerText;
+    let morning = document.getElementById("m-" + index).innerText;
     let reason = document.getElementById("reason").value;
 
-    if (morningStatus !== "✔️") {
-
-        if (reason.trim() === "") {
-            alert("⚠️ Pehle Morning complete karo ya reason likho!");
-            return;
-        } else {
-            alert("⚠️ Morning skip kiya\nReason: " + reason);
-        }
+    if (morning !== "✔️" && reason.trim() === "") {
+        alert("Morning complete karo ya reason likho!");
+        return;
     }
 
     startTimer(index, type, subjectName);
@@ -152,27 +147,33 @@ function checkAndStart(index, type, subjectName) {
 
 function checkNight(index, subjectName) {
 
-    let afternoonStatus = document.getElementById("a-" + index).innerText;
+    let afternoon = document.getElementById("a-" + index).innerText;
     let reason = document.getElementById("reason").value;
 
-    if (afternoonStatus !== "✔️") {
-
-        if (reason.trim() === "") {
-            alert("⚠️ Pehle Afternoon complete karo ya reason likho!");
-            return;
-        } else {
-            alert("⚠️ Afternoon skip kiya\nReason: " + reason);
-        }
+    if (afternoon !== "✔️" && reason.trim() === "") {
+        alert("Afternoon complete karo ya reason likho!");
+        return;
     }
 
-    startTimer(index, 'night', subjectName);
+    startTimer(index, "night", subjectName);
 }
 
-function formatTime(sec) {
-    let m = Math.floor(sec / 60);
-    let s = sec % 60;
-    return m + ":" + (s < 10 ? "0" : "") + s;
-}
+// 🔥 Motivational Messages
+let messages = [
+    "🔥 Exam very close! Study more!",
+    "💪 Keep going, success is near!",
+    "📚 Focus = Success",
+    "🚀 You can do it!",
+    "⏳ Time is running!",
+    "🎯 Discipline = Topper"
+];
+
+let i = 0;
+
+setInterval(() => {
+    document.getElementById("motivation").innerText = messages[i];
+    i = (i + 1) % messages.length;
+}, 2000);
 
 </script>
 
