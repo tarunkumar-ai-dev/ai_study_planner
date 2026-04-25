@@ -2,136 +2,163 @@
 <html>
 <head>
     <title>Study Plan</title>
-
-    <!-- CSS LINK -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-    <style>
-        .message {
-            font-size: 22px;
-            margin-top: 15px;
-            color: yellow;
-        }
-
-        .timer-box {
-            margin-top: 20px;
-            font-size: 25px;
-        }
-
-        .btn {
-            margin: 10px;
-            padding: 10px 20px;
-            font-size: 16px;
-            border-radius: 10px;
-            border: none;
-            cursor: pointer;
-        }
-
-        .start { background: green; color: white; }
-        .pause { background: orange; color: white; }
-        .print { background: blue; color: white; }
-    </style>
 </head>
 
 <body>
 
 <div class="container">
 
-    <h1>Your Study Plan 📚</h1>
+    <h1>🔥 Your Study Plan</h1>
+    <p>💪 Keep going!</p>
 
-    <!-- Dynamic Message -->
-    <div class="message" id="msg">🔥 Study hard, success is coming!</div>
-
-    <!-- Table -->
-    <table>
-        <tr>
-            <th>Subject</th>
-            <th>Morning 🌅</th>
-            <th>Afternoon ☀️</th>
-            <th>Night 🌙</th>
-            <th>Status ✅</th>
-        </tr>
-
-        {% for row in plan %}
-        <tr>
-            <td>{{ row.subject }}</td>
-            <td>{{ row.morning }}</td>
-            <td>{{ row.afternoon }}</td>
-            <td>{{ row.night }}</td>
-            <td class="status">❌</td>
-        </tr>
-        {% endfor %}
-    </table>
-
-    <!-- Timer -->
-    <div class="timer-box">
-        ⏱ Timer: <span id="timer">00:00</span>
+    <!-- ✅ Reason Input -->
+    <div style="margin:20px;">
+        <input type="text" id="reason" placeholder="Reason (if skipping)">
     </div>
 
-    <!-- Buttons -->
-    <button class="btn start" onclick="startTimer()">Start</button>
-    <button class="btn pause" onclick="pauseTimer()">Pause</button>
-    <button class="btn print" onclick="window.print()">Print 🖨️</button>
+    <table border="1" cellpadding="10">
+        <thead>
+            <tr>
+                <th>Subject</th>
+                <th>Morning 🌅</th>
+                <th>Afternoon ☀️</th>
+                <th>Night 🌙</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for row in plan %}
+        <tr>
+
+            <td>{{ row.subject }}</td>
+
+            <!-- 🌅 MORNING -->
+            <td>
+                {{ row.morning }}
+                <br>
+                <button onclick="startTimer({{ loop.index0 }}, 'morning')">▶</button>
+                <span id="m-{{ loop.index0 }}">❌</span>
+            </td>
+
+            <!-- ☀️ AFTERNOON -->
+            <td>
+                {{ row.afternoon }}
+                <br>
+                <button onclick="checkAndStart({{ loop.index0 }}, 'afternoon')">▶</button>
+                <span id="a-{{ loop.index0 }}">❌</span>
+            </td>
+
+            <!-- 🌙 NIGHT -->
+            <td>
+                {{ row.night }}
+                <br>
+                <button onclick="checkNight({{ loop.index0 }})">▶</button>
+                <span id="n-{{ loop.index0 }}">❌</span>
+            </td>
+
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- ⏱ Timer Display -->
+    <h2 id="timer">Timer: 00:00</h2>
 
 </div>
 
-<!-- SOUND -->
-<audio id="beep" src="https://www.soundjay.com/button/beep-07.wav"></audio>
-
+<!-- 🔥 JAVASCRIPT -->
 <script>
-let time = 0;
-let running = false;
-let interval;
 
-function startTimer() {
-    if (!running) {
-        running = true;
-        interval = setInterval(() => {
-            time++;
-            let min = Math.floor(time / 60);
-            let sec = time % 60;
+let timers = {};
+
+function startTimer(index, type) {
+
+    let cellId;
+    let timeText;
+
+    if (type === "morning") {
+        cellId = "m-" + index;
+        timeText = document.querySelectorAll("tbody tr")[index].cells[1].innerText;
+    }
+    else if (type === "afternoon") {
+        cellId = "a-" + index;
+        timeText = document.querySelectorAll("tbody tr")[index].cells[2].innerText;
+    }
+    else {
+        cellId = "n-" + index;
+        timeText = document.querySelectorAll("tbody tr")[index].cells[3].innerText;
+    }
+
+    let minutes = parseInt(timeText);
+    let seconds = minutes * 60;
+
+    if (timers[cellId]) {
+        clearInterval(timers[cellId]);
+    }
+
+    timers[cellId] = setInterval(() => {
+
+        if (seconds <= 0) {
+            clearInterval(timers[cellId]);
+
+            document.getElementById(cellId).innerText = "✔️";
+
+            // 🔊 Beep
+            let audio = new Audio("https://www.soundjay.com/buttons/beep-01a.mp3");
+            audio.play();
+
+        } else {
+            seconds--;
 
             document.getElementById("timer").innerText =
-                (min < 10 ? "0" + min : min) + ":" +
-                (sec < 10 ? "0" + sec : sec);
+                "Timer: " + formatTime(seconds);
+        }
 
-            // every 10 sec beep + tick
-            if (time % 10 === 0) {
-                document.getElementById("beep").play();
+    }, 1000);
+}
 
-                let rows = document.querySelectorAll(".status");
-                for (let i = 0; i < rows.length; i++) {
-                    if (rows[i].innerText === "❌") {
-                        rows[i].innerText = "✅";
-                        break;
-                    }
-                }
-            }
+function checkAndStart(index, type) {
 
-        }, 1000);
+    let morningStatus = document.getElementById("m-" + index).innerText;
+    let reason = document.getElementById("reason").value;
+
+    if (morningStatus !== "✔️") {
+
+        if (reason.trim() === "") {
+            alert("⚠️ Pehle Morning complete karo ya reason likho!");
+            return;
+        } else {
+            alert("⚠️ Morning skip kiya\nReason: " + reason);
+        }
     }
+
+    startTimer(index, type);
 }
 
-function pauseTimer() {
-    running = false;
-    clearInterval(interval);
+function checkNight(index) {
+
+    let afternoonStatus = document.getElementById("a-" + index).innerText;
+    let reason = document.getElementById("reason").value;
+
+    if (afternoonStatus !== "✔️") {
+
+        if (reason.trim() === "") {
+            alert("⚠️ Pehle Afternoon complete karo ya reason likho!");
+            return;
+        } else {
+            alert("⚠️ Afternoon skip kiya\nReason: " + reason);
+        }
+    }
+
+    startTimer(index, 'night');
 }
 
-
-// 🔥 changing message
-let messages = [
-    "🔥 Exam very close! Study more!",
-    "💪 Keep going!",
-    "📚 Focus = Success",
-    "🚀 You can do it!",
-    "⏳ Time is running!"
-];
-
-let i = 0;
-setInterval(() => {
-    document.getElementById("msg").innerText = messages[i];
-    i = (i + 1) % messages.length;
-}, 3000);
+function formatTime(sec) {
+    let m = Math.floor(sec / 60);
+    let s = sec % 60;
+    return m + ":" + (s < 10 ? "0" : "") + s;
+}
 
 </script>
 
