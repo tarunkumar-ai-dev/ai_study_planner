@@ -8,115 +8,96 @@
 <body>
 
 <div class="container">
-
     <h1>🤖 AI Study Planner</h1>
 
     <!-- TOTAL HOURS -->
-    <label>Total Study Hours:</label>
-    <input type="number" name="hours" id="hours" required>
-
-    <br><br>
-
-    <!-- EXAM DAYS -->
-    <label>Exam in (days):</label>
-    <input type="number" name="exam_days" id="exam_days" required>
-
-    <br><br>
+    <label>Total Study Hours:</label><br>
+    <input type="number" id="hoursInput" placeholder="Enter hours" required><br><br>
 
     <!-- SEARCH -->
-    <input type="text" id="search" placeholder="🔍 Search subject..." onkeyup="filterSubjects()">
+    <input type="text" id="search" placeholder="🔍 Search subject..." onkeyup="filterSubjects()"><br><br>
 
-    <form action="/generate" method="POST">
+    <!-- FORM -->
+    <form action="/generate" method="POST" enctype="multipart/form-data">
 
         <input type="hidden" name="hours" id="hiddenHours">
-        <input type="hidden" name="exam_days" id="hiddenExam">
 
-        <div id="subjectList">
-
-            <!-- Subjects dynamically -->
-        </div>
+        <!-- SUBJECT LIST -->
+        <div id="subjectList"></div>
 
         <br>
+
+        <!-- DATE SHEET UPLOAD -->
+        <label>Upload Date Sheet 📄:</label><br>
+        <input type="file" name="datesheet" accept="image/*" required><br><br>
+
         <button type="submit" onclick="prepareForm()">Generate Plan 🚀</button>
 
     </form>
-
 </div>
 
 <script>
 
 let subjects = [
-"Maths","Physics","Chemistry","Biology","English","Hindi",
-"Computer","DBMS","OS","Networking","Python","Java",
-"C++","AI","ML","Data Science","Web Dev","Cloud",
-"Cyber Security","Aptitude","Reasoning","GK"
+    "Maths","Physics","Chemistry","Biology","English","Hindi",
+    "Computer","DBMS","OS","Java","Python","C++","Networking",
+    "AI","ML","Data Science","Statistics","Economics","Accounts"
 ];
 
-// render subjects
-function renderSubjects() {
-
+// CREATE SUBJECT LIST
+function renderSubjects(list) {
     let html = "";
 
-    subjects.forEach(sub => {
+    list.forEach(sub => {
         html += `
-        <div class="subject-item">
+        <div class="subject">
+            <input type="checkbox" name="selected_subjects" value="${sub}"> ${sub}
 
-            <input type="checkbox" name="selected_subjects" value="${sub}" onclick="toggleOptions('${sub}')"> ${sub}
+            <br>
 
-            <div id="opt-${sub}" style="display:none;">
+            Difficulty:
+            <select name="difficulty_${sub}">
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+            </select>
 
-                Difficulty:
-                <select name="difficulty_${sub}">
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                </select>
+            Priority:
+            <select name="priority_${sub}">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+            </select>
 
-                Priority:
-                <select name="priority_${sub}">
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3" selected>3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                </select>
-
-            </div>
+            <hr>
         </div>
-        <br>
         `;
     });
 
     document.getElementById("subjectList").innerHTML = html;
 }
 
-// show options
-function toggleOptions(sub) {
-    let el = document.getElementById("opt-" + sub);
-    el.style.display = (el.style.display === "none") ? "block" : "none";
-}
-
-// search
+// SEARCH FUNCTION
 function filterSubjects() {
-    let val = document.getElementById("search").value.toLowerCase();
-    let items = document.getElementsByClassName("subject-item");
+    let input = document.getElementById("search").value.toLowerCase();
 
-    for (let i = 0; i < items.length; i++) {
-        let text = items[i].innerText.toLowerCase();
-        items[i].style.display = text.includes(val) ? "block" : "none";
-    }
+    let filtered = subjects.filter(sub =>
+        sub.toLowerCase().includes(input)
+    );
+
+    renderSubjects(filtered);
 }
 
-// pass values
+// INITIAL LOAD
+renderSubjects(subjects);
+
+// SEND HOURS
 function prepareForm() {
-    document.getElementById("hiddenHours").value =
-        document.getElementById("hours").value;
-
-    document.getElementById("hiddenExam").value =
-        document.getElementById("exam_days").value;
+    let hours = document.getElementById("hoursInput").value;
+    document.getElementById("hiddenHours").value = hours;
 }
-
-renderSubjects();
 
 </script>
 
