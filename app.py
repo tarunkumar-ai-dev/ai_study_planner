@@ -1,98 +1,57 @@
 from flask import Flask, render_template, request
-
 import pytesseract
 from PIL import Image
 import os
 
 app = Flask(__name__)
 
-# ⚠️ Windows user ke liye (path check kar lena)
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-
-
-# HOME PAGE
 @app.route('/')
-def home():
+def index():
     return render_template('index.html')
 
-
-# GENERATE PLAN
 @app.route('/generate', methods=['POST'])
 def generate():
 
-    # 📄 FILE UPLOAD
-    file = request.files['datesheet']
+    hours = int(request.form.get('hours', 1))
+    exam_days = int(request.form.get('exam_days', 1))
 
-    file_path = "datesheet.png"
-    file.save(file_path)
+    file = request.files.get('datesheet')
 
-    # 🔍 OCR TEXT
-    text = pytesseract.image_to_string(Image.open(file_path))
-    print("Detected Text:", text)
+    detected_subjects = []
 
-    # 📚 SUBJECT LIST
-    all_subjects = [
-        "Maths","Physics","Chemistry","Biology","English","Hindi",
-        "Computer","DBMS","OS","Java","Python","C++",
-        "AI","ML","Data Science","Statistics"
-    ]
+    if file and file.filename != "":
+        filepath = os.path.join("static", file.filename)
+        file.save(filepath)
 
-    # 🎯 DETECT SUBJECTS
-    selected = []
+        img = Image.open(filepath)
+        text = pytesseract.image_to_string(img).lower()
 
-    for sub in all_subjects:
-        if sub.lower() in text.lower():
-            selected.append(sub)
+        subjects_list = [
+            "maths","physics","chemistry","biology",
+            "english","hindi","computer","dbms","os","java","python"
+        ]
 
-    # ⚠️ SAFETY
-    if not selected:
-        return "❌ No subjects detected from date sheet!"
+        for sub in subjects_list:
+            if sub in text:
+                detected_subjects.append(sub.capitalize())
 
-    # ⏱ HOURS
-    total_hours = int(request.form['hours'])
+    # fallback manual
+    subjects = detected_subjects if detected_subjects else request.form.getlist('subjects')
 
     plan = []
-    weights = []
 
-    # 🧠 CALCULATE WEIGHT
-    for subject in selected:
+    if subjects:
+        per_subject_time = hours * 60 // len(subjects)
 
-        difficulty = request.form.get(f'difficulty_{subject}')
-        priority = int(request.form.get(f'priority_{subject}', 3))
+        for sub in subjects:
+            plan.append({
+                "subject": sub,
+                "morning": f"{per_subject_time//3} min",
+                "afternoon": f"{per_subject_time//3} min",
+                "night": f"{per_subject_time//3} min"
+            })
 
-        # difficulty weight
-        if difficulty == "hard":
-            diff = 3
-        elif difficulty == "medium":
-            diff = 2
-        else:
-            diff = 1
+    return render_template('result.html', plan=plan)
 
-        weight = diff * priority
-        weights.append(weight)
-
-    total_weight = sum(weights)
-
-    # 🧩 DISTRIBUTE TIME
-    for i, subject in enumerate(selected):
-
-        subject_hours = (weights[i] / total_weight) * total_hours
-        total_minutes = int(subject_hours * 60)
-
-        morning = int(total_minutes * 0.5)
-        afternoon = int(total_minutes * 0.3)
-        night = total_minutes - (morning + afternoon)
-
-        plan.append({
-            "subject": subject,
-            "morning": f"{morning} min",
-            "afternoon": f"{afternoon} min",
-            "night": f"{night} min"
-        })
-
-    return render_template("result.html", plan=plan)
-
-
-# RUN
 if __name__ == '__main__':
     app.run(debug=True)
