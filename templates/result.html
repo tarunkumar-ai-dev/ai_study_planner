@@ -2,180 +2,29 @@
 <html>
 <head>
     <title>Study Plan</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
 
-<body>
-
-<div class="container">
-
-    <h1>🔥 Your Study Plan</h1>
-
-    <!-- 🔥 Motivational Text -->
-    <div id="motivation">
-        🔥 Stay focused!
-    </div>
-
-    <!-- Live Status -->
-    <div id="liveStatus">🔴 No active session</div>
-
-    <!-- Reason Input -->
-    <input type="text" id="reason" placeholder="Reason (if skipping)">
-
-    <table>
-        <thead>
-            <tr>
-                <th>Subject</th>
-                <th>Morning 🌅</th>
-                <th>Afternoon ☀️</th>
-                <th>Night 🌙</th>
-            </tr>
-        </thead>
-
-        <tbody>
-        {% for row in plan %}
-        <tr>
-
-            <td>{{ row.subject }}</td>
-
-            <td>
-                {{ row.morning }}
-                <button onclick="startTimer({{ loop.index0 }}, 'morning', '{{ row.subject }}')">▶</button>
-                <span id="m-{{ loop.index0 }}">❌</span>
-            </td>
-
-            <td>
-                {{ row.afternoon }}
-                <button onclick="checkAndStart({{ loop.index0 }}, 'afternoon', '{{ row.subject }}')">▶</button>
-                <span id="a-{{ loop.index0 }}">❌</span>
-            </td>
-
-            <td>
-                {{ row.night }}
-                <button onclick="checkNight({{ loop.index0 }}, '{{ row.subject }}')">▶</button>
-                <span id="n-{{ loop.index0 }}">❌</span>
-            </td>
-
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-
-    <h2 id="timer">Timer: 00:00</h2>
-
-</div>
-
-<!-- 🔔 Notification Permission -->
-<script>
-if (Notification.permission !== "granted") {
-    Notification.requestPermission();
-}
-</script>
-
-<!-- 🔥 MAIN JS -->
-<script>
-
-let timers = {};
-
-function startTimer(index, type, subjectName) {
-
-    document.getElementById("liveStatus").innerText =
-        "🟢 Studying: " + subjectName + " (" + type + ")";
-
-    let cellId, timeText;
-
-    if (type === "morning") {
-        cellId = "m-" + index;
-        timeText = document.querySelectorAll("tbody tr")[index].cells[1].innerText;
-    } else if (type === "afternoon") {
-        cellId = "a-" + index;
-        timeText = document.querySelectorAll("tbody tr")[index].cells[2].innerText;
-    } else {
-        cellId = "n-" + index;
-        timeText = document.querySelectorAll("tbody tr")[index].cells[3].innerText;
-    }
-
-    let minutes = parseInt(timeText);
-    let seconds = minutes * 60;
-
-    timers[cellId] = setInterval(() => {
-
-        if (seconds <= 0) {
-            clearInterval(timers[cellId]);
-
-            document.getElementById(cellId).innerText = "✔️";
-
-            document.getElementById("liveStatus").innerText =
-                "✅ Completed: " + subjectName + " (" + type + ")";
-
-            new Audio("https://www.soundjay.com/buttons/beep-01a.mp3").play();
-
-            if (Notification.permission === "granted") {
-                new Notification("⏱ Completed!", {
-                    body: subjectName + " (" + type + ") done"
-                });
-            }
-
-        } else {
-            seconds--;
-
-            document.getElementById("timer").innerText =
-                "Timer: " + Math.floor(seconds/60) + ":" + (seconds%60);
-
-            if (seconds % 30 === 0) {
-                new Notification("⏱ Running...", {
-                    body: subjectName + " (" + type + ") ongoing"
-                });
-            }
+    <style>
+        body {
+            font-family: Arial;
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            color: white;
+            text-align: center;
         }
 
-    }, 1000);
-}
+        .container {
+            margin: 40px auto;
+            width: 80%;
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 15px;
+        }
 
-function checkAndStart(index, type, subjectName) {
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
 
-    let morning = document.getElementById("m-" + index).innerText;
-    let reason = document.getElementById("reason").value;
-
-    if (morning !== "✔️" && reason.trim() === "") {
-        alert("Morning complete karo ya reason likho!");
-        return;
-    }
-
-    startTimer(index, type, subjectName);
-}
-
-function checkNight(index, subjectName) {
-
-    let afternoon = document.getElementById("a-" + index).innerText;
-    let reason = document.getElementById("reason").value;
-
-    if (afternoon !== "✔️" && reason.trim() === "") {
-        alert("Afternoon complete karo ya reason likho!");
-        return;
-    }
-
-    startTimer(index, "night", subjectName);
-}
-
-// 🔥 Motivational Messages
-let messages = [
-    "🔥 Exam very close! Study more!",
-    "💪 Keep going, success is near!",
-    "📚 Focus = Success",
-    "🚀 You can do it!",
-    "⏳ Time is running!",
-    "🎯 Discipline = Topper"
-];
-
-let i = 0;
-
-setInterval(() => {
-    document.getElementById("motivation").innerText = messages[i];
-    i = (i + 1) % messages.length;
-}, 2000);
-
-</script>
-
-</body>
-</html>
+        th, td {
+            padding: 10px;
+            border: 1
