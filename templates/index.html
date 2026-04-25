@@ -11,97 +11,114 @@
 
     <h1>🤖 AI Study Planner</h1>
 
+    <!-- TOTAL HOURS -->
+    <label>Total Study Hours:</label>
+    <input type="number" name="hours" id="hours" required>
+
+    <br><br>
+
+    <!-- EXAM DAYS -->
+    <label>Exam in (days):</label>
+    <input type="number" name="exam_days" id="exam_days" required>
+
+    <br><br>
+
+    <!-- SEARCH -->
+    <input type="text" id="search" placeholder="🔍 Search subject..." onkeyup="filterSubjects()">
+
     <form action="/generate" method="POST">
 
-        <label>Total Study Hours:</label>
-        <input type="number" name="hours" required>
+        <input type="hidden" name="hours" id="hiddenHours">
+        <input type="hidden" name="exam_days" id="hiddenExam">
 
-        <h3>Select Subjects:</h3>
+        <div id="subjectList">
 
-        <div class="subject-box">
-
-            <!-- SUBJECT 1 -->
-            <div>
-                <input type="checkbox" name="selected_subjects" value="Maths"> Maths
-
-                <br>
-
-                Difficulty:
-                <select name="difficulty_Maths">
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                </select>
-
-                Priority:
-                <select name="priority_Maths">
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3" selected>3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                </select>
-            </div>
-
-            <br>
-
-            <!-- SUBJECT 2 -->
-            <div>
-                <input type="checkbox" name="selected_subjects" value="Physics"> Physics
-
-                <br>
-
-                Difficulty:
-                <select name="difficulty_Physics">
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                </select>
-
-                Priority:
-                <select name="priority_Physics">
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3" selected>3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                </select>
-            </div>
-
-            <br>
-
-            <!-- SUBJECT 3 -->
-            <div>
-                <input type="checkbox" name="selected_subjects" value="English"> English
-
-                <br>
-
-                Difficulty:
-                <select name="difficulty_English">
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                </select>
-
-                Priority:
-                <select name="priority_English">
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3" selected>3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                </select>
-            </div>
-
+            <!-- Subjects dynamically -->
         </div>
 
         <br>
-
-        <button type="submit">Generate Plan 🚀</button>
+        <button type="submit" onclick="prepareForm()">Generate Plan 🚀</button>
 
     </form>
 
 </div>
+
+<script>
+
+let subjects = [
+"Maths","Physics","Chemistry","Biology","English","Hindi",
+"Computer","DBMS","OS","Networking","Python","Java",
+"C++","AI","ML","Data Science","Web Dev","Cloud",
+"Cyber Security","Aptitude","Reasoning","GK"
+];
+
+// render subjects
+function renderSubjects() {
+
+    let html = "";
+
+    subjects.forEach(sub => {
+        html += `
+        <div class="subject-item">
+
+            <input type="checkbox" name="selected_subjects" value="${sub}" onclick="toggleOptions('${sub}')"> ${sub}
+
+            <div id="opt-${sub}" style="display:none;">
+
+                Difficulty:
+                <select name="difficulty_${sub}">
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+
+                Priority:
+                <select name="priority_${sub}">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3" selected>3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+
+            </div>
+        </div>
+        <br>
+        `;
+    });
+
+    document.getElementById("subjectList").innerHTML = html;
+}
+
+// show options
+function toggleOptions(sub) {
+    let el = document.getElementById("opt-" + sub);
+    el.style.display = (el.style.display === "none") ? "block" : "none";
+}
+
+// search
+function filterSubjects() {
+    let val = document.getElementById("search").value.toLowerCase();
+    let items = document.getElementsByClassName("subject-item");
+
+    for (let i = 0; i < items.length; i++) {
+        let text = items[i].innerText.toLowerCase();
+        items[i].style.display = text.includes(val) ? "block" : "none";
+    }
+}
+
+// pass values
+function prepareForm() {
+    document.getElementById("hiddenHours").value =
+        document.getElementById("hours").value;
+
+    document.getElementById("hiddenExam").value =
+        document.getElementById("exam_days").value;
+}
+
+renderSubjects();
+
+</script>
 
 </body>
 </html>
