@@ -1,98 +1,244 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>AI Study Planner</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Study Planner</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
 </head>
 <body>
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
 
-<div class="container">
-    <h1>🤖 AI Study Planner</h1>
+<div class="page-wrapper">
+  <header class="site-header">
+    <div class="logo-mark">✦</div>
+    <h1 class="site-title">AI Study Planner</h1>
+    <p class="site-tagline">Intelligent scheduling for sharper minds</p>
+  </header>
 
-    <!-- TOTAL HOURS -->
-    <label>Total Study Hours:</label><br>
-    <input type="number" id="hoursInput" placeholder="Enter hours" required><br><br>
+  <form action="/generate" method="POST" enctype="multipart/form-data" id="plannerForm">
+    <!-- STEP 1: Study Hours -->
+    <div class="card" id="card-hours">
+      <div class="card-label">01</div>
+      <h2 class="card-title">How many hours can you study?</h2>
+      <div class="input-group">
+        <input type="number" name="total_hours" id="total_hours" min="1" max="24" value="8" required class="big-input">
+        <span class="input-unit">hours total</span>
+      </div>
+      <input type="range" name="hours_range" id="hours_range" min="1" max="24" value="8" class="slider" oninput="syncSlider(this.value)">
+      <div class="range-labels"><span>1 hr</span><span>12 hrs</span><span>24 hrs</span></div>
+    </div>
 
-    <!-- EXAM DAYS -->
-    <label>Exam in (days):</label><br>
-    <input type="number" id="examInput" placeholder="Enter days" required><br><br>
+    <!-- STEP 2: Exam Timing -->
+    <div class="card" id="card-exam">
+      <div class="card-label">02</div>
+      <h2 class="card-title">When is your exam?</h2>
+      <div class="timing-tabs">
+        <button type="button" class="tab-btn active" onclick="switchTab('manual')">📅 Days Away</button>
+        <button type="button" class="tab-btn" onclick="switchTab('upload')">📷 Upload Datesheet</button>
+      </div>
+      <div id="tab-manual" class="tab-content active">
+        <div class="input-group">
+          <input type="number" name="exam_days" id="exam_days" min="1" max="365" placeholder="e.g. 7" class="big-input">
+          <span class="input-unit">days away</span>
+        </div>
+        <div class="proximity-labels">
+          <span class="prox-tag danger">≤3 days 🔥</span>
+          <span class="prox-tag warning">≤7 days ⚡</span>
+          <span class="prox-tag moderate">≤14 days 📚</span>
+          <span class="prox-tag safe">> 14 days 🌿</span>
+        </div>
+      </div>
+      <div id="tab-upload" class="tab-content">
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('datesheet').click()">
+          <div class="upload-icon">📄</div>
+          <p class="upload-text">Click to upload datesheet image</p>
+          <p class="upload-sub">PNG, JPG, JPEG, BMP, TIFF supported</p>
+          <input type="file" name="datesheet" id="datesheet" accept="image/*" style="display:none" onchange="handleFileSelect(this)">
+        </div>
+        <div id="file-preview" class="file-preview hidden"></div>
+        <p class="ocr-note">🤖 AI will auto-detect subjects from your datesheet using OCR</p>
+      </div>
+    </div>
 
-    <!-- SEARCH -->
-    <input type="text" id="search" placeholder="🔍 Search subject..." onkeyup="filterSubjects()"><br><br>
+    <!-- STEP 3: Subjects -->
+    <div class="card" id="card-subjects">
+      <div class="card-label">03</div>
+      <h2 class="card-title">Select your subjects</h2>
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="subjectSearch" placeholder="Search subjects..." class="search-input" oninput="filterSubjects(this.value)">
+        <span id="searchClear" class="search-clear hidden" onclick="clearSearch()">✕</span>
+      </div>
+      <div class="selected-count" id="selectedCount">0 subjects selected</div>
 
-    <!-- FORM -->
-    <form action="/generate" method="POST" enctype="multipart/form-data">
+      <div class="subjects-grid" id="subjectsGrid">
+        {% for subject in subjects %}
+        <div class="subject-item" data-subject="{{ subject|lower }}" id="item-{{ loop.index }}">
+          <label class="subject-label">
+            <input type="checkbox" name="subjects" value="{{ subject }}" class="subject-checkbox" onchange="toggleSubjectConfig(this, '{{ subject }}')">
+            <span class="checkbox-custom"></span>
+            <span class="subject-name">{{ subject }}</span>
+          </label>
+          <div class="subject-config hidden" id="config-{{ subject|replace(' ', '_') }}">
+            <div class="config-row">
+              <label class="config-label">Difficulty</label>
+              <select name="difficulty_{{ subject }}" class="config-select diff-select">
+                <option value="Easy">🟢 Easy</option>
+                <option value="Medium" selected>🟡 Medium</option>
+                <option value="Hard">🔴 Hard</option>
+              </select>
+            </div>
+            <div class="config-row">
+              <label class="config-label">Priority</label>
+              <div class="star-rating" id="stars-{{ subject|replace(' ', '_') }}">
+                {% for i in range(1, 6) %}
+                <span class="star" data-val="{{ i }}" onclick="setStar('{{ subject|replace(' ', '_') }}', {{ i }})">★</span>
+                {% endfor %}
+                <input type="hidden" name="priority_{{ subject }}" id="prio-{{ subject|replace(' ', '_') }}" value="3">
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
 
-        <input type="hidden" name="hours" id="hiddenHours">
-        <input type="hidden" name="exam_days" id="hiddenExam">
+      <div id="noResults" class="no-results hidden">No subjects found. Try a different search.</div>
+    </div>
 
-        <!-- SUBJECT LIST -->
-        <div id="subjectList"></div>
-
-        <br>
-
-        <!-- DATE SHEET UPLOAD -->
-        <label>Upload Datesheet 📄:</label><br>
-        <input type="file" name="datesheet" accept="image/*"><br><br>
-
-        <button type="submit" onclick="prepareForm()">Generate Plan 🚀</button>
-
-    </form>
+    <!-- Submit -->
+    <div class="submit-section">
+      <button type="submit" class="btn-generate" id="submitBtn">
+        <span class="btn-icon">⚡</span>
+        <span class="btn-text">Generate My Study Plan</span>
+      </button>
+      <p class="submit-note">Your personalized AI-powered plan will be ready instantly</p>
+    </div>
+  </form>
 </div>
 
 <script>
-let subjects = [
-    "Maths","Physics","Chemistry","Biology","English","Hindi",
-    "Computer","DBMS","OS","Java","Python","C++","Accounts",
-    "Economics","History","Geography"
-];
+// Slider sync
+function syncSlider(val) {
+  document.getElementById('total_hours').value = val;
+}
+document.getElementById('total_hours').addEventListener('input', function() {
+  document.getElementById('hours_range').value = this.value;
+});
 
-function loadSubjects() {
-    let container = document.getElementById("subjectList");
-    container.innerHTML = "";
-
-    subjects.forEach(sub => {
-        container.innerHTML += `
-            <div>
-                <input type="checkbox" name="subjects" value="${sub}">
-                ${sub}
-                Difficulty:
-                <select name="difficulty_${sub}">
-                    <option>Easy</option>
-                    <option>Medium</option>
-                    <option>Hard</option>
-                </select>
-                Priority:
-                <select name="priority_${sub}">
-                    <option>1</option>
-                    <option>2</option>
-                    <option>3</option>
-                </select>
-            </div>
-            <br>
-        `;
-    });
+// Tab switching
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (tab === 'manual') {
+    document.getElementById('exam_days').name = 'exam_days';
+  } else {
+    document.getElementById('exam_days').name = 'exam_days_disabled';
+  }
 }
 
-function filterSubjects() {
-    let search = document.getElementById("search").value.toLowerCase();
-    let items = document.querySelectorAll("#subjectList div");
-
-    items.forEach(item => {
-        if (item.innerText.toLowerCase().includes(search)) {
-            item.style.display = "block";
-        } else {
-            item.style.display = "none";
-        }
-    });
+// File upload
+function handleFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const preview = document.getElementById('file-preview');
+  preview.classList.remove('hidden');
+  preview.innerHTML = `<div class="file-info">📎 <strong>${file.name}</strong> (${(file.size/1024).toFixed(1)} KB) <span class="ocr-badge">OCR Ready</span></div>`;
+  document.querySelector('.upload-text').textContent = 'File selected ✓';
+  document.getElementById('uploadZone').style.borderColor = '#22c55e';
 }
 
-function prepareForm() {
-    document.getElementById("hiddenHours").value = document.getElementById("hoursInput").value;
-    document.getElementById("hiddenExam").value = document.getElementById("examInput").value;
+// Subject search
+function filterSubjects(query) {
+  const q = query.toLowerCase().trim();
+  const items = document.querySelectorAll('.subject-item');
+  let visible = 0;
+  items.forEach(item => {
+    const match = item.dataset.subject.includes(q);
+    item.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  document.getElementById('noResults').classList.toggle('hidden', visible > 0);
+  document.getElementById('searchClear').classList.toggle('hidden', q === '');
 }
 
-window.onload = loadSubjects;
+function clearSearch() {
+  document.getElementById('subjectSearch').value = '';
+  filterSubjects('');
+}
+
+// Toggle subject config
+function toggleSubjectConfig(checkbox, subject) {
+  const key = subject.replace(/ /g, '_');
+  const config = document.getElementById('config-' + key);
+  if (checkbox.checked) {
+    config.classList.remove('hidden');
+    setStar(key, 3);
+    updateSelectedCount();
+    // Animate
+    config.style.animation = 'slideDown 0.3s ease';
+  } else {
+    config.classList.add('hidden');
+    updateSelectedCount();
+  }
+}
+
+function updateSelectedCount() {
+  const count = document.querySelectorAll('.subject-checkbox:checked').length;
+  const el = document.getElementById('selectedCount');
+  el.textContent = count + ' subject' + (count !== 1 ? 's' : '') + ' selected';
+  el.style.color = count > 0 ? '#22c55e' : '#94a3b8';
+}
+
+// Star rating
+function setStar(key, val) {
+  const stars = document.querySelectorAll(`#stars-${key} .star`);
+  document.getElementById('prio-' + key).value = val;
+  stars.forEach((s, i) => {
+    s.classList.toggle('active', i < val);
+  });
+}
+
+// Init stars on page load (default 3)
+document.querySelectorAll('.star-rating').forEach(container => {
+  const stars = container.querySelectorAll('.star');
+  stars.forEach((s, i) => {
+    if (i < 3) s.classList.add('active');
+  });
+});
+
+// Form submit
+document.getElementById('plannerForm').addEventListener('submit', function(e) {
+  const checked = document.querySelectorAll('.subject-checkbox:checked').length;
+  if (checked === 0) {
+    e.preventDefault();
+    alert('Please select at least one subject to generate your study plan.');
+    return;
+  }
+  const btn = document.getElementById('submitBtn');
+  btn.innerHTML = '<span class="btn-icon">⏳</span><span class="btn-text">Generating your plan...</span>';
+  btn.disabled = true;
+});
+
+// Drag over upload zone
+const uploadZone = document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const dt = e.dataTransfer;
+  const input = document.getElementById('datesheet');
+  input.files = dt.files;
+  handleFileSelect(input);
+});
 </script>
-
 </body>
 </html>
