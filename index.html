@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Study Planner</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>✨ Smart Study Planner ✨</h1>
+
+    <form action="/generate" method="POST">
+
+        <!-- SUBJECT SEARCH -->
+        <label>Select Subjects:</label>
+
+        <input type="text" id="searchBox" placeholder="🔍 Search subject..." onkeyup="filterSubjects()">
+
+        <div id="subjectList" class="subject-list">
+
+            <label><input type="checkbox" name="selected_subjects" value="Maths"> Maths</label>
+            <label><input type="checkbox" name="selected_subjects" value="Physics"> Physics</label>
+            <label><input type="checkbox" name="selected_subjects" value="Chemistry"> Chemistry</label>
+            <label><input type="checkbox" name="selected_subjects" value="Biology"> Biology</label>
+            <label><input type="checkbox" name="selected_subjects" value="Python"> Python</label>
+            <label><input type="checkbox" name="selected_subjects" value="Java"> Java</label>
+            <label><input type="checkbox" name="selected_subjects" value="C++"> C++</label>
+            <label><input type="checkbox" name="selected_subjects" value="DBMS"> DBMS</label>
+            <label><input type="checkbox" name="selected_subjects" value="OS"> Operating System</label>
+            <label><input type="checkbox" name="selected_subjects" value="CN"> Computer Networks</label>
+            <label><input type="checkbox" name="selected_subjects" value="English"> English</label>
+            <label><input type="checkbox" name="selected_subjects" value="Hindi"> Hindi</label>
+
+        </div>
+
+        <!-- SELECTED SUBJECT SETTINGS -->
+        <div id="selectedSubjects"></div>
+
+        <!-- HOURS -->
+        <label>Total Study Hours:</label>
+        <select name="hours">
+            <option value="2">2 Hours</option>
+            <option value="4">4 Hours</option>
+            <option value="6">6 Hours</option>
+            <option value="8">8 Hours</option>
+        </select>
+
+        <!-- EXAM DATE -->
+        <label>Exam Date:</label>
+        <input type="date" name="exam_date">
+
+        <button type="submit">🚀 Generate Plan</button>
+
+    </form>
+
+</div>
+
+<!-- SEARCH SCRIPT -->
+<script>
+function filterSubjects() {
+    let input = document.getElementById("searchBox").value.toLowerCase();
+    let labels = document.querySelectorAll("#subjectList label");
+
+    labels.forEach(label => {
+        let text = label.innerText.toLowerCase();
+        label.style.display = text.includes(input) ? "" : "none";
+    });
+}
+</script>
+
+<!-- DYNAMIC SUBJECT SETTINGS -->
+<script>
+const subjects = document.querySelectorAll("input[name='selected_subjects']");
+const container = document.getElementById("selectedSubjects");
+
+subjects.forEach(sub => {
+    sub.addEventListener("change", updateSubjects);
+});
+
+function updateSubjects() {
+    container.innerHTML = "";
+
+    document.querySelectorAll("input[name='selected_subjects']:checked")
+    .forEach(sub => {
+
+        let name = sub.value;
+
+        let div = document.createElement("div");
+        div.style.marginTop = "10px";
+
+        div.innerHTML = `
+            <b>${name}</b><br>
+
+            Difficulty:
+            <select name="difficulty_${name}">
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+            </select>
+
+            Priority:
+            <select name="priority_${name}">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+            </select>
+        `;
+
+        container.appendChild(div);
+    });
+}
+</script>
+
+</body>
+</html>

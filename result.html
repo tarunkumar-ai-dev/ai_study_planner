@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Study Plan</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <h1>Your Study Plan 📚</h1>
+    <h3 style="text-align:center; color:green;">
+      {{ message }}
+    </h3>
+
+    <div class="result-box">  
+    <table>
+        
+        <tr>
+            <th>Subject</th>
+            <th>Morning 🌅</th>
+            <th>Afternoon 🌇</th>
+            <th>Night 🌙</th>
+        </tr>
+
+        {% for item in plan %}
+        <tr>
+            <td>{{ item.subject }}</td>
+            <td>{{ item.morning }}</td>
+            <td>{{ item.afternoon }}</td>
+            <td>{{ item.night }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <canvas id="myChart"></canvas>
+</div>
+    </div>
+
+    <br>
+    <a href="/">⬅ Back</a>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const subjects = [
+        {% for item in plan %}
+            "{{ item.subject }}",
+        {% endfor %}
+    ];
+
+    const hours = [
+        {% for item in plan %}
+            {{ item.morning + item.afternoon + item.night }},
+        {% endfor %}
+    ];
+
+    const ctx = document.getElementById('myChart');
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: subjects,
+            datasets: [{
+                label: 'Study Hours',
+                data: hours,
+                borderWidth: 1
+            }]
+        }
+    });
+</script>
+</body>
+</html>
