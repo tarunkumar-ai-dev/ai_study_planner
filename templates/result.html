@@ -1,30 +1,566 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Study Plan</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Study Plan — AI Study Planner</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+</head>
+<body class="result-page">
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
 
-    <style>
-        body {
-            font-family: Arial;
-            background: linear-gradient(to right, #00c6ff, #0072ff);
-            color: white;
-            text-align: center;
+<div class="page-wrapper result-wrapper">
+
+  <!-- Header -->
+  <header class="result-header">
+    <a href="/" class="back-link">← Back</a>
+    <div class="logo-mark">✦</div>
+    <button class="btn-print" onclick="window.print()">🖨 Print Plan</button>
+  </header>
+
+  <!-- Motivational Banner -->
+  <div class="motivation-banner" id="motivationBanner">
+    <span id="motivationText">Loading inspiration...</span>
+  </div>
+
+  <!-- Plan Stats -->
+  <div class="stats-row">
+    <div class="stat-chip">📚 {{ plan|length }} Sessions</div>
+    <div class="stat-chip">⏱ {{ total_hours }} Hours Total</div>
+    {% if exam_days %}<div class="stat-chip danger-chip">🎯 Exam in {{ exam_days }} days</div>{% endif %}
+    {% if ocr_subjects %}<div class="stat-chip ocr-chip">🤖 {{ ocr_subjects|length }} OCR Detected</div>{% endif %}
+  </div>
+
+  <!-- TIMER SECTION -->
+  <div class="timer-card" id="timerCard">
+    <div class="timer-subject-label">Current Subject</div>
+    <div class="timer-subject-name" id="timerSubjectName">—</div>
+    <div class="timer-session-badge" id="timerSessionBadge">—</div>
+    <div class="timer-display" id="timerDisplay">00:00:00</div>
+    <div class="timer-progress-wrap">
+      <div class="timer-progress-bar" id="timerProgressBar" style="width:0%"></div>
+    </div>
+    <div class="timer-meta" id="timerMeta">Select a session row to begin</div>
+    <div class="timer-controls">
+      <button class="btn-timer start" id="btnStart" onclick="startTimer()">▶ Start</button>
+      <button class="btn-timer pause" id="btnPause" onclick="pauseTimer()" disabled>⏸ Pause</button>
+      <button class="btn-timer reset" id="btnReset" onclick="resetTimer()">↺ Reset</button>
+    </div>
+    <div class="timer-overall">
+      Overall: <span id="overallTimer">00:00:00</span>
+    </div>
+  </div>
+
+  <!-- OCR notice -->
+  {% if ocr_subjects %}
+  <div class="ocr-notice">
+    🤖 <strong>OCR Detected:</strong> {{ ocr_subjects | join(', ') }}
+  </div>
+  {% endif %}
+
+  <!-- PLAN TABLE - Morning -->
+  {% if morning %}
+  <div class="session-block" id="session-morning">
+    <div class="session-header morning-header">
+      <span class="session-icon">🌅</span>
+      <span class="session-title">Morning Session</span>
+      <span class="session-total">{{ morning|sum(attribute='hours') }} hrs</span>
+      <span class="session-status" id="status-morning">Pending</span>
+    </div>
+    <table class="plan-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Subject</th>
+          <th>Difficulty</th>
+          <th>Priority</th>
+          <th>Time</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-morning">
+        {% for item in morning %}
+        <tr class="plan-row" id="row-{{ item.order }}" data-order="{{ item.order }}" data-session="Morning" data-subject="{{ item.subject }}" data-minutes="{{ item.minutes }}">
+          <td class="row-num">{{ loop.index }}</td>
+          <td class="subject-cell">{{ item.subject }}</td>
+          <td><span class="diff-badge diff-{{ item.difficulty|lower }}">{{ item.difficulty }}</span></td>
+          <td class="prio-cell">{% for i in range(item.priority|int) %}★{% endfor %}{% for i in range(5 - item.priority|int) %}☆{% endfor %}</td>
+          <td class="time-cell"><strong>{{ item.hours }}h</strong> <span class="mins-label">({{ item.minutes }}min)</span></td>
+          <td class="status-cell" id="status-{{ item.order }}"><span class="status-pending">⏳ Pending</span></td>
+          <td><button class="btn-study" onclick="selectSubject({{ item.order }}, 'Morning')">Study</button></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- PLAN TABLE - Afternoon -->
+  {% if afternoon %}
+  <div class="session-block" id="session-afternoon">
+    <div class="session-header afternoon-header">
+      <span class="session-icon">☀️</span>
+      <span class="session-title">Afternoon Session</span>
+      <span class="session-total">{{ afternoon|sum(attribute='hours') }} hrs</span>
+      <span class="session-status" id="status-afternoon">Locked 🔒</span>
+    </div>
+    <table class="plan-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Subject</th>
+          <th>Difficulty</th>
+          <th>Priority</th>
+          <th>Time</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-afternoon">
+        {% for item in afternoon %}
+        <tr class="plan-row locked" id="row-{{ item.order }}" data-order="{{ item.order }}" data-session="Afternoon" data-subject="{{ item.subject }}" data-minutes="{{ item.minutes }}">
+          <td class="row-num">{{ loop.index }}</td>
+          <td class="subject-cell">{{ item.subject }}</td>
+          <td><span class="diff-badge diff-{{ item.difficulty|lower }}">{{ item.difficulty }}</span></td>
+          <td class="prio-cell">{% for i in range(item.priority|int) %}★{% endfor %}{% for i in range(5 - item.priority|int) %}☆{% endfor %}</td>
+          <td class="time-cell"><strong>{{ item.hours }}h</strong> <span class="mins-label">({{ item.minutes }}min)</span></td>
+          <td class="status-cell" id="status-{{ item.order }}"><span class="status-pending">🔒 Locked</span></td>
+          <td><button class="btn-study locked-btn" onclick="selectSubject({{ item.order }}, 'Afternoon')">Study</button></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- PLAN TABLE - Night -->
+  {% if night %}
+  <div class="session-block" id="session-night">
+    <div class="session-header night-header">
+      <span class="session-icon">🌙</span>
+      <span class="session-title">Night Session</span>
+      <span class="session-total">{{ night|sum(attribute='hours') }} hrs</span>
+      <span class="session-status" id="status-night">Locked 🔒</span>
+    </div>
+    <table class="plan-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Subject</th>
+          <th>Difficulty</th>
+          <th>Priority</th>
+          <th>Time</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-night">
+        {% for item in night %}
+        <tr class="plan-row locked" id="row-{{ item.order }}" data-order="{{ item.order }}" data-session="Night" data-subject="{{ item.subject }}" data-minutes="{{ item.minutes }}">
+          <td class="row-num">{{ loop.index }}</td>
+          <td class="subject-cell">{{ item.subject }}</td>
+          <td><span class="diff-badge diff-{{ item.difficulty|lower }}">{{ item.difficulty }}</span></td>
+          <td class="prio-cell">{% for i in range(item.priority|int) %}★{% endfor %}{% for i in range(5 - item.priority|int) %}☆{% endfor %}</td>
+          <td class="time-cell"><strong>{{ item.hours }}h</strong> <span class="mins-label">({{ item.minutes }}min)</span></td>
+          <td class="status-cell" id="status-{{ item.order }}"><span class="status-pending">🔒 Locked</span></td>
+          <td><button class="btn-study locked-btn" onclick="selectSubject({{ item.order }}, 'Night')">Study</button></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Skip Log -->
+  <div id="skipLog" class="skip-log hidden">
+    <h3>⚠️ Session Skip Log</h3>
+    <ul id="skipLogList"></ul>
+  </div>
+
+  <footer class="result-footer">
+    <a href="/" class="btn-new-plan">✦ Create New Plan</a>
+  </footer>
+</div>
+
+<!-- Skip Reason Modal -->
+<div id="skipModal" class="modal-overlay hidden">
+  <div class="modal-card">
+    <h3 class="modal-title">⚠️ Skip Session?</h3>
+    <p class="modal-text">You are trying to start <strong id="skipTargetSession"></strong> before completing <strong id="skipCurrentSession"></strong>. Please provide a reason to override:</p>
+    <textarea id="skipReason" class="modal-textarea" placeholder="Enter your reason for skipping..." rows="3"></textarea>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeSkipModal()">Cancel</button>
+      <button class="modal-btn confirm" onclick="confirmSkip()">Allow Override</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== PLAN DATA ====================
+const planData = [
+  {% for item in plan %}
+  { order: {{ item.order }}, subject: "{{ item.subject }}", session: "{{ item.session }}", minutes: {{ item.minutes }}, hours: {{ item.hours }} }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+
+const sessionOrder = ['Morning', 'Afternoon', 'Night'];
+const completedSessions = { Morning: false, Afternoon: false, Night: false };
+const completedRows = new Set();
+const skipLog = [];
+
+// Track current active order
+let currentOrder = -1;
+let pendingSkipOrder = -1;
+let pendingSkipSession = '';
+
+// Timer state
+let timerInterval = null;
+let overallInterval = null;
+let timerSeconds = 0;
+let totalSeconds = 0;
+let overallSeconds = 0;
+let isRunning = false;
+let isPaused = false;
+let reminderInterval = null;
+
+// Audio beep
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.5, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.8);
+  } catch(e) {}
+}
+
+function playCompletionBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [523, 659, 784, 1046];
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.4, ctx.currentTime + i * 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.3);
+      osc.start(ctx.currentTime + i * 0.15);
+      osc.stop(ctx.currentTime + i * 0.15 + 0.3);
+    });
+  } catch(e) {}
+}
+
+// Notifications
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+function sendNotification(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, { body: body, icon: '' });
+  }
+}
+
+requestNotificationPermission();
+
+// ==================== MOTIVATIONAL QUOTES ====================
+const quotes = [
+  "🌟 Every hour of focused study is an investment in your future.",
+  "💪 You don't have to be perfect, just consistent.",
+  "🔥 The secret of getting ahead is getting started.",
+  "🧠 Knowledge is power — power up your mind.",
+  "✨ One subject at a time. You've got this.",
+  "🎯 Focus on progress, not perfection.",
+  "🚀 Your future self is watching. Make them proud.",
+  "📚 Study now, shine later.",
+  "⚡ Small steps every day lead to big results.",
+  "🏆 Champions train when they don't feel like it.",
+  "🌈 Hard work always pays off in the end.",
+  "💡 The more you study, the luckier you get.",
+  "🎓 Invest in your education — it pays the best returns.",
+  "🌙 Late nights and early mornings — that's the price of success.",
+  "⭐ You are closer to your goal than you think.",
+];
+let quoteIdx = 0;
+function rotateQuote() {
+  document.getElementById('motivationText').style.opacity = '0';
+  setTimeout(() => {
+    quoteIdx = (quoteIdx + 1) % quotes.length;
+    document.getElementById('motivationText').textContent = quotes[quoteIdx];
+    document.getElementById('motivationText').style.opacity = '1';
+  }, 400);
+}
+document.getElementById('motivationText').textContent = quotes[0];
+setInterval(rotateQuote, 3000);
+
+// ==================== TIMER FUNCTIONS ====================
+function formatTime(secs) {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function updateTimerDisplay() {
+  document.getElementById('timerDisplay').textContent = formatTime(timerSeconds);
+  document.getElementById('overallTimer').textContent = formatTime(overallSeconds);
+  // Progress bar
+  if (totalSeconds > 0) {
+    const pct = Math.min(100, ((totalSeconds - timerSeconds) / totalSeconds) * 100);
+    document.getElementById('timerProgressBar').style.width = pct + '%';
+  }
+}
+
+function selectSubject(order, session) {
+  const item = planData.find(p => p.order === order);
+  if (!item) return;
+
+  // Check session flow
+  const sessionIdx = sessionOrder.indexOf(session);
+  for (let i = 0; i < sessionIdx; i++) {
+    const prevSession = sessionOrder[i];
+    const prevItems = planData.filter(p => p.session === prevSession);
+    if (prevItems.length > 0) {
+      const prevDone = prevItems.every(p => completedRows.has(p.order));
+      if (!prevDone) {
+        // Show skip modal
+        pendingSkipOrder = order;
+        pendingSkipSession = session;
+        document.getElementById('skipCurrentSession').textContent = prevSession;
+        document.getElementById('skipTargetSession').textContent = session;
+        document.getElementById('skipModal').classList.remove('hidden');
+        return;
+      }
+    }
+  }
+  _activateSubject(order, session);
+}
+
+function _activateSubject(order, session) {
+  if (isRunning) {
+    clearInterval(timerInterval);
+    isRunning = false;
+    isPaused = false;
+  }
+  currentOrder = order;
+  const item = planData.find(p => p.order === order);
+  timerSeconds = item.minutes * 60;
+  totalSeconds = timerSeconds;
+
+  document.getElementById('timerSubjectName').textContent = item.subject;
+  document.getElementById('timerSessionBadge').textContent = session;
+  document.getElementById('timerSessionBadge').className = 'timer-session-badge badge-' + session.toLowerCase();
+  document.getElementById('timerMeta').textContent = `${item.hours}h allocated · ${item.minutes} minutes`;
+  document.getElementById('timerProgressBar').style.width = '0%';
+  updateTimerDisplay();
+
+  document.getElementById('btnStart').disabled = false;
+  document.getElementById('btnPause').disabled = true;
+
+  // Highlight row
+  document.querySelectorAll('.plan-row').forEach(r => r.classList.remove('active-row'));
+  const row = document.getElementById('row-' + order);
+  if (row) {
+    row.classList.add('active-row');
+    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  sendNotification('Study Planner', `Starting: ${item.subject} (${item.minutes} min)`);
+}
+
+function startTimer() {
+  if (currentOrder === -1) {
+    alert('Please click "Study" on a subject row to begin.');
+    return;
+  }
+  if (isRunning) return;
+  isRunning = true;
+  isPaused = false;
+  document.getElementById('btnStart').disabled = true;
+  document.getElementById('btnPause').disabled = false;
+
+  // Start overall timer if not started
+  if (!overallInterval) {
+    overallInterval = setInterval(() => { overallSeconds++; }, 1000);
+  }
+
+  timerInterval = setInterval(() => {
+    if (timerSeconds > 0) {
+      timerSeconds--;
+      overallSeconds; // tracked above
+      updateTimerDisplay();
+    } else {
+      clearInterval(timerInterval);
+      isRunning = false;
+      onSubjectComplete(currentOrder);
+    }
+  }, 1000);
+
+  // Periodic reminder every 5 minutes
+  if (reminderInterval) clearInterval(reminderInterval);
+  reminderInterval = setInterval(() => {
+    const item = planData.find(p => p.order === currentOrder);
+    if (item && isRunning) {
+      sendNotification('Study Reminder ⏰', `Keep going! Studying ${item.subject}. ${Math.floor(timerSeconds/60)} minutes left.`);
+      playBeep();
+    }
+  }, 5 * 60 * 1000);
+}
+
+function pauseTimer() {
+  if (!isRunning) return;
+  clearInterval(timerInterval);
+  isRunning = false;
+  isPaused = true;
+  document.getElementById('btnStart').disabled = false;
+  document.getElementById('btnPause').disabled = true;
+  document.getElementById('timerMeta').textContent = '⏸ Paused — press Start to resume';
+}
+
+function resetTimer() {
+  clearInterval(timerInterval);
+  isRunning = false;
+  isPaused = false;
+  if (currentOrder !== -1) {
+    const item = planData.find(p => p.order === currentOrder);
+    timerSeconds = item ? item.minutes * 60 : 0;
+    totalSeconds = timerSeconds;
+  }
+  document.getElementById('timerProgressBar').style.width = '0%';
+  updateTimerDisplay();
+  document.getElementById('btnStart').disabled = false;
+  document.getElementById('btnPause').disabled = true;
+  document.getElementById('timerMeta').textContent = 'Timer reset. Press Start when ready.';
+}
+
+function onSubjectComplete(order) {
+  completedRows.add(order);
+  const item = planData.find(p => p.order === order);
+
+  // Update row status
+  const statusEl = document.getElementById('status-' + order);
+  if (statusEl) statusEl.innerHTML = '<span class="status-done">✔ Done</span>';
+  const row = document.getElementById('row-' + order);
+  if (row) { row.classList.remove('active-row'); row.classList.add('completed-row'); }
+
+  playCompletionBeep();
+  sendNotification('✅ Subject Complete!', `${item.subject} done! Great job!`);
+  document.getElementById('timerMeta').textContent = `✅ ${item.subject} completed!`;
+
+  // Check session completion
+  checkSessionCompletion(item.session);
+
+  // Auto-advance to next subject
+  setTimeout(() => autoAdvance(order, item.session), 1500);
+}
+
+function checkSessionCompletion(session) {
+  const sessionItems = planData.filter(p => p.session === session);
+  if (sessionItems.every(p => completedRows.has(p.order))) {
+    completedSessions[session] = true;
+    const statusEl = document.getElementById('status-' + session.toLowerCase());
+    if (statusEl) statusEl.textContent = '✅ Complete';
+
+    // Unlock next session
+    const idx = sessionOrder.indexOf(session);
+    if (idx < sessionOrder.length - 1) {
+      const nextSession = sessionOrder[idx + 1];
+      unlockSession(nextSession);
+      sendNotification('🎉 Session Complete!', `${session} done! ${nextSession} session is now unlocked.`);
+    } else {
+      sendNotification('🏆 All Done!', 'You have completed your entire study plan!');
+    }
+  }
+}
+
+function unlockSession(session) {
+  const sessionItems = planData.filter(p => p.session === session);
+  sessionItems.forEach(item => {
+    const row = document.getElementById('row-' + item.order);
+    if (row) {
+      row.classList.remove('locked');
+      const btn = row.querySelector('.btn-study');
+      if (btn) btn.classList.remove('locked-btn');
+    }
+    const statusEl = document.getElementById('status-' + item.order);
+    if (statusEl) statusEl.innerHTML = '<span class="status-pending">⏳ Pending</span>';
+  });
+  const sessionStatusEl = document.getElementById('status-' + session.toLowerCase());
+  if (sessionStatusEl) sessionStatusEl.textContent = 'Unlocked ✓';
+}
+
+function autoAdvance(completedOrder, session) {
+  const sessionItems = planData.filter(p => p.session === session && !completedRows.has(p.order));
+  if (sessionItems.length > 0) {
+    _activateSubject(sessionItems[0].order, session);
+    startTimer();
+  } else {
+    // Try next session
+    const idx = sessionOrder.indexOf(session);
+    if (idx < sessionOrder.length - 1) {
+      const nextSession = sessionOrder[idx + 1];
+      if (completedSessions[session]) {
+        const nextItems = planData.filter(p => p.session === nextSession && !completedRows.has(p.order));
+        if (nextItems.length > 0) {
+          _activateSubject(nextItems[0].order, nextSession);
         }
+      }
+    } else {
+      document.getElementById('timerSubjectName').textContent = '🎉 All sessions complete!';
+      document.getElementById('timerMeta').textContent = 'Congratulations on completing your study plan!';
+    }
+  }
+}
 
-        .container {
-            margin: 40px auto;
-            width: 80%;
-            background: rgba(0,0,0,0.3);
-            padding: 20px;
-            border-radius: 15px;
-        }
+// ==================== SKIP MODAL ====================
+function closeSkipModal() {
+  document.getElementById('skipModal').classList.add('hidden');
+  pendingSkipOrder = -1;
+  pendingSkipSession = '';
+}
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
+function confirmSkip() {
+  const reason = document.getElementById('skipReason').value.trim();
+  if (!reason) {
+    alert('Please enter a reason to override.');
+    return;
+  }
+  skipLog.push({ session: pendingSkipSession, reason: reason, time: new Date().toLocaleTimeString() });
+  document.getElementById('skipLog').classList.remove('hidden');
+  const li = document.createElement('li');
+  li.textContent = `[${skipLog[skipLog.length-1].time}] Skipped to ${pendingSkipSession}: "${reason}"`;
+  document.getElementById('skipLogList').appendChild(li);
+  closeSkipModal();
+  _activateSubject(pendingSkipOrder, pendingSkipSession);
+}
 
-        th, td {
-            padding: 10px;
-            border: 1
+// ==================== INIT ====================
+// Set initial session lock states
+document.addEventListener('DOMContentLoaded', () => {
+  updateTimerDisplay();
+  // Auto-select first morning item
+  const firstMorning = planData.find(p => p.session === 'Morning');
+  if (firstMorning) {
+    _activateSubject(firstMorning.order, 'Morning');
+  }
+});
+</script>
+</body>
+</html>
