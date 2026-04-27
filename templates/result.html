@@ -109,6 +109,7 @@
       <span class="session-title">Afternoon Session</span>
       <span class="session-total">{{ afternoon|sum(attribute='hours') }} hrs</span>
       <span class="session-status" id="status-afternoon">Locked 🔒</span>
+      <button class="btn-skip" onclick="skipToSession('Afternoon')">⏭ Skip to Afternoon</button>
     </div>
     <table class="plan-table">
       <thead>
@@ -147,6 +148,7 @@
       <span class="session-title">Night Session</span>
       <span class="session-total">{{ night|sum(attribute='hours') }} hrs</span>
       <span class="session-status" id="status-night">Locked 🔒</span>
+      <button class="btn-skip" onclick="skipToSession('Night')">⏭ Skip to Night</button>
     </div>
     <table class="plan-table">
       <thead>
@@ -471,7 +473,32 @@ function onSubjectComplete(order) {
   setTimeout(() => autoAdvance(order, item.session), 1500);
 }
 
-function checkSessionCompletion(session) {
+  function skipToSession(targetSession) {
+  const reason = prompt(`Reason batao ${targetSession} session skip karke start karne ka (optional):`);
+  
+  skipLog.push({ 
+    session: targetSession, 
+    reason: reason || 'No reason given', 
+    time: new Date().toLocaleTimeString() 
+  });
+
+  // Unlock target session
+  unlockSession(targetSession);
+  
+  // Show skip log
+  document.getElementById('skipLog').classList.remove('hidden');
+  const li = document.createElement('li');
+  li.textContent = `[${new Date().toLocaleTimeString()}] Skipped to ${targetSession}: "${reason || 'No reason given'}"`;
+  document.getElementById('skipLogList').appendChild(li);
+
+  // Auto select first subject of target session
+  const sessionItems = planData.filter(p => p.session === targetSession && !completedRows.has(p.order));
+  if (sessionItems.length > 0) {
+    _activateSubject(sessionItems[0].order, targetSession);
+  }
+}
+ 
+  function checkSessionCompletion(session) {
   const sessionItems = planData.filter(p => p.session === session);
   if (sessionItems.every(p => completedRows.has(p.order))) {
     completedSessions[session] = true;
