@@ -21,7 +21,7 @@
     <p class="site-tagline">Intelligent scheduling for sharper minds</p>
   </header>
 
-  <form action="/generate" method="POST" enctype="multipart/form-data" id="plannerForm">
+  <form action="/ocr-preview" method="POST" enctype="multipart/form-data" id="plannerForm">
     <!-- STEP 1: Study Hours -->
     <div class="card" id="card-hours">
       <div class="card-label">01</div>
@@ -112,7 +112,11 @@
     </div>
 
     <!-- Submit -->
-    <div class="submit-section">
+    <div class="submit-section"> 
+      <button type="button" class="btn-generate" id="ocrBtn" onclick="handleFormAction()" style="background: linear-gradient(135deg, #06b6d4, #0891b2); margin-bottom: 12px; width: 100%;">
+        <span class="btn-icon">🤖</span>
+        <span class="btn-text">Upload Datesheet & Auto-Select Subjects</span>
+      </button>
       <button type="submit" class="btn-generate" id="submitBtn">
         <span class="btn-icon">⚡</span>
         <span class="btn-text">Generate My Study Plan</span>
@@ -222,6 +226,16 @@ document.getElementById('plannerForm').addEventListener('submit', function(e) {
     alert('Please select at least one subject to generate your study plan.');
     return;
   }
+
+document.getElementById('plannerForm').addEventListener('submit', function(e) {
+  if (document.getElementById('plannerForm').action.includes('/generate')) {
+    const checked = document.querySelectorAll('.subject-checkbox:checked').length;
+    if (checked === 0) {
+      e.preventDefault();
+      alert('Please select at least one subject to generate your study plan.');
+      return;
+    }
+  }
   const btn = document.getElementById('submitBtn');
   btn.innerHTML = '<span class="btn-icon">⏳</span><span class="btn-text">Generating your plan...</span>';
   btn.disabled = true;
@@ -238,6 +252,42 @@ uploadZone.addEventListener('drop', e => {
   const input = document.getElementById('datesheet');
   input.files = dt.files;
   handleFileSelect(input);
+});
+
+// ─── OCR Auto-Select Logic ───────────────────────────
+const ocrSubjects = {{ ocr_subjects | default([]) | tojson }};
+console.log("OCR Subjects received:", ocrSubjects);
+
+if (ocrSubjects.length > 0) {
+  window.addEventListener('DOMContentLoaded', function () {
+    ocrSubjects.forEach(function (subjectName) {
+      document.querySelectorAll('input[name="subjects"]').forEach(function (cb) {
+        if (cb.value.trim().toLowerCase() === subjectName.trim().toLowerCase()) {
+          cb.checked = true;
+          toggleSubjectConfig(cb, cb.value);
+          console.log("Auto-selected:", cb.value);
+          const item = cb.closest('.subject-item');
+          if (item) item.style.display = '';
+        }
+      });
+    });
+    updateSelectedCount();
+    document.getElementById('card-subjects').scrollIntoView({ behavior: 'smooth' });
+  });
+}
+
+function handleFormAction() {
+  const fileInput = document.getElementById('datesheet');
+  if (fileInput && fileInput.files.length > 0) {
+    document.getElementById('plannerForm').action = '/ocr-preview';
+    document.getElementById('plannerForm').submit();
+  } else {
+    alert('Pehle datesheet image select karo!');
+  }
+}
+
+document.getElementById('submitBtn').addEventListener('click', function () {
+  document.getElementById('plannerForm').action = '/generate';
 });
 </script>
 </body>
