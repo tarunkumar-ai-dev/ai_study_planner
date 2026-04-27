@@ -57,23 +57,18 @@ ALL_SUBJECTS = sorted(set(ALL_SUBJECTS))
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
 def extract_subjects_from_image(image_path):
     detected = []
     try:
+        # Pehle OCR try karo
         import pytesseract
         from PIL import Image
-
-        # Render/Linux pe Tesseract path
         pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
-
         img = Image.open(image_path)
         img = img.convert('L')
         img = img.point(lambda x: 0 if x < 140 else 255)
-
         raw_text = pytesseract.image_to_string(img)
         print("RAW OCR TEXT:", raw_text)
-
         text_lower = raw_text.lower()
 
         for subject in ALL_SUBJECTS:
@@ -81,48 +76,60 @@ def extract_subjects_from_image(image_path):
                 detected.append(subject)
 
         keywords_map = {
-          'math': 'Mathematics',
-          'physics': 'Physics',
-          'chem': 'Chemistry',
-          'bio': 'Biology',
-          'english': 'English Core',
-          'language': 'English Language and Literature',
-          'history': 'History',
-          'geo': 'Geography',
-          'economics': 'Economics',
-          'computer': 'Computer Science',
-          'account': 'Accounting',
-          'stats': 'Statistics',
-          'science': 'Science',
-          'hindi': 'Hindi',
-          'sanskrit': 'Sanskrit',
-          'social': 'Social Science',
-          'physical': 'Physical Education',
-          'p.e': 'Physical Education',
-          'civics': 'Civics',
-          'it': 'Information Technology',
-          'ip': 'Informatics Practices',
-          'env': 'Environmental Studies',
-          'home': 'Home Science',
-          'fine': 'Fine Arts',
-          'network': 'Computer Networks',
-          'database': 'Database Systems',
-          'ai': 'Artificial Intelligence',
-          'ml': 'Machine Learning',
-          'calc': 'Calculus',
-          'algo': 'Algorithms',
-    }
-
+            'math': 'Mathematics',
+            'physics': 'Physics',
+            'chem': 'Chemistry',
+            'bio': 'Biology',
+            'english': 'English Core',
+            'language': 'English Language and Literature',
+            'history': 'History',
+            'geo': 'Geography',
+            'economics': 'Economics',
+            'computer': 'Computer Science',
+            'account': 'Accounting',
+            'science': 'Science',
+            'hindi': 'Hindi',
+            'sanskrit': 'Sanskrit',
+            'social': 'Social Science',
+            'physical': 'Physical Education',
+            'civics': 'Civics',
+            'it': 'Information Technology',
+            'env': 'Environmental Studies',
+            'home': 'Home Science',
+            'fine': 'Fine Arts',
+            'calc': 'Calculus',
+            'algo': 'Algorithms',
+            'network': 'Computer Networks',
+            'database': 'Database Systems',
+            'ai': 'Artificial Intelligence',
+            'ml': 'Machine Learning',
+        }
         for kw, subj in keywords_map.items():
             if kw in text_lower and subj not in detected:
                 detected.append(subj)
 
-        print("DETECTED SUBJECTS:", detected)
-
     except Exception as e:
         print("OCR ERROR:", e)
+        # OCR fail hone pr bhi kuch return karo
+        detected = []
 
+    # Agar kuch detect nahi hua toh default subjects
+    if not detected:
+        print("OCR failed - returning default subjects")
+        detected = [
+            'Mathematics',
+            'Science',
+            'English Core',
+            'Hindi',
+            'Social Science',
+            'Computer Science',
+            'Physical Education',
+            'Sanskrit',
+        ]
+
+    print("FINAL DETECTED:", detected)
     return detected
+
 def generate_study_plan(subjects_data, total_hours, exam_days):
     """
     Generate a weighted study plan.
