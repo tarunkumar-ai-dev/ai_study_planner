@@ -51,41 +51,32 @@ ALL_SUBJECTS = sorted(set(ALL_SUBJECTS))
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
 def extract_subjects_from_image(image_path):
-    """Extract subject names from uploaded datesheet image using pytesseract."""
     detected = []
     try:
         import pytesseract
         from PIL import Image
+        
         img = Image.open(image_path)
-        text = pytesseract.image_to_string(img)
-        text_lower = text.lower()
+        raw_text = pytesseract.image_to_string(img)
+        print("=" * 50)
+        print("RAW OCR TEXT:")
+        print(raw_text)
+        print("=" * 50)
+        
+        text_lower = raw_text.lower()
+        
         for subject in ALL_SUBJECTS:
             if subject.lower() in text_lower:
                 detected.append(subject)
-        # Also try partial keyword matching
-        keywords_map = {
-            'math': 'Mathematics', 'calc': 'Calculus', 'stat': 'Statistics',
-            'physics': 'Physics', 'chem': 'Chemistry', 'bio': 'Biology',
-            'english': 'English Literature', 'history': 'History',
-            'geography': 'Geography', 'economics': 'Economics',
-            'computer': 'Computer Science', 'cs': 'Computer Science',
-            'psychology': 'Psychology', 'sociology': 'Sociology',
-            'philosophy': 'Philosophy', 'accounting': 'Accounting',
-            'finance': 'Finance', 'marketing': 'Marketing',
-            'physics': 'Physics', 'organic': 'Organic Chemistry',
-            'algebra': 'Linear Algebra', 'algorithm': 'Algorithms',
-            'network': 'Computer Networks', 'database': 'Database Systems',
-        }
-        for kw, subj in keywords_map.items():
-            if kw in text_lower and subj not in detected:
-                detected.append(subj)
-    except ImportError:
-        pass
-    except Exception:
-        pass
-    return list(set(detected))
-
+        
+        print("DETECTED SUBJECTS:", detected)
+        
+    except Exception as e:
+        print("OCR ERROR:", e)
+    
+    return detected
 def generate_study_plan(subjects_data, total_hours, exam_days):
     """
     Generate a weighted study plan.
