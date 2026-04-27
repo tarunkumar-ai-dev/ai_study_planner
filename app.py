@@ -57,25 +57,53 @@ def extract_subjects_from_image(image_path):
     try:
         import pytesseract
         from PIL import Image
-        
+
+        # Render/Linux pe Tesseract path
+        pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+
         img = Image.open(image_path)
+        img = img.convert('L')
+        img = img.point(lambda x: 0 if x < 140 else 255)
+
         raw_text = pytesseract.image_to_string(img)
-        print("=" * 50)
-        print("RAW OCR TEXT:")
-        print(raw_text)
-        print("=" * 50)
-        
+        print("RAW OCR TEXT:", raw_text)
+
         text_lower = raw_text.lower()
-        
+
         for subject in ALL_SUBJECTS:
             if subject.lower() in text_lower:
                 detected.append(subject)
-        
+
+        keywords_map = {
+            'math': 'Mathematics',
+            'physics': 'Physics',
+            'chem': 'Chemistry',
+            'bio': 'Biology',
+            'english': 'English Literature',
+            'history': 'History',
+            'geo': 'Geography',
+            'economics': 'Economics',
+            'computer': 'Computer Science',
+            'account': 'Accounting',
+            'science': 'Environmental Science',
+            'stats': 'Statistics',
+            'calc': 'Calculus',
+            'algo': 'Algorithms',
+            'network': 'Computer Networks',
+            'database': 'Database Systems',
+            'ai': 'Artificial Intelligence',
+            'ml': 'Machine Learning',
+        }
+
+        for kw, subj in keywords_map.items():
+            if kw in text_lower and subj not in detected:
+                detected.append(subj)
+
         print("DETECTED SUBJECTS:", detected)
-        
+
     except Exception as e:
         print("OCR ERROR:", e)
-    
+
     return detected
 def generate_study_plan(subjects_data, total_hours, exam_days):
     """
