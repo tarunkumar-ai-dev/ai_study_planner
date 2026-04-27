@@ -181,6 +181,29 @@ def generate_study_plan(subjects_data, total_hours, exam_days):
 
     return plan
 
+@app.route('/ocr-preview', methods=['POST'])
+def ocr_preview():
+    ocr_subjects = []
+    exam_days = request.form.get('exam_days', '')
+    total_hours = request.form.get('total_hours', 8)
+
+    if 'datesheet' in request.files:
+        file = request.files['datesheet']
+        if file and file.filename and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            ocr_subjects = extract_subjects_from_image(filepath)
+            print("OCR SUBJECTS:", ocr_subjects)
+
+    return render_template(
+        'index.html',
+        subjects=ALL_SUBJECTS,
+        ocr_subjects=ocr_subjects,
+        exam_days=exam_days,
+        total_hours=total_hours
+    )
+
 @app.route('/')
 def index():
     return render_template('index.html', subjects=ALL_SUBJECTS)
