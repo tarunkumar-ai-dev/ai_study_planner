@@ -39,8 +39,8 @@
       <div class="card-label">02</div>
       <h2 class="card-title">When is your exam?</h2>
       <div class="timing-tabs">
-        <button type="button" class="tab-btn active" onclick="switchTab('manual')">📅 Days Away</button>
-        <button type="button" class="tab-btn" onclick="switchTab('upload')">📷 Upload Datesheet</button>
+      <button type="button" class="tab-btn active" onclick="switchTab('manual', this)">📅 Days Away</button>
+      <button type="button" class="tab-btn" onclick="switchTab('upload', this)">📷 Upload Datesheet</button>  
       </div>
       <div id="tab-manual" class="tab-content active">
         <div class="input-group">
@@ -136,11 +136,11 @@ document.getElementById('total_hours').addEventListener('input', function() {
 });
 
 // Tab switching
-function switchTab(tab) {
+function switchTab(tab, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
-  event.currentTarget.classList.add('active');
+  btn.classList.add('active');
   if (tab === 'manual') {
     document.getElementById('exam_days').name = 'exam_days';
   } else {
